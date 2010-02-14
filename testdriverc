@@ -1,0 +1,40 @@
+# This is the global configuration file for the testdrive(1) utility.
+# This file is python-syntax, sourced by testdrive
+
+# CACHE is the directory to cache the ISOs and disk images
+# Default: $HOME/.cache/testdrive
+#CACHE = /path/to/your/cache
+
+# ISO_URL is the complete path to the ISO
+# Default: $PROTO://$MIRROR/$DIR/$CODENAME-$TYPE-$ARCH.iso
+#ISO_URL = "http://cdimage.ubuntu.com/ubuntu-netbook/daily-live/current/lucid-netbook-i386.iso"
+#ISO_URL = "rsync://cdimage.ubuntu.com/cdimage/ubuntu-server/daily/current/lucid-server-amd64.iso"
+#ISO_URL = "ftp://mirrors.kernel.org/ubuntu-releases/lucid/ubuntu-9.10-desktop-amd64.iso"
+
+# VIRT is the type of hypervisor to use
+# VIRT can be either 'kvm', 'virtualbox', or 'parallels'
+#VIRT = "kvm"
+#VIRT = "virtualbox"
+
+# MEM is the amount of memory in MB to give to the VM guest
+# Default: 512
+#MEM = "384"
+#MEM = "512"
+#MEM = "1024"
+
+# DISK_FILE is the full path to the disk image
+# Default: $CACHE/$ISO.img
+#DISK_FILE = "/path/to/foo.img"
+
+# DISK_SIZE is the size of the disk image
+# Note that this will be a sparse, qcow2 file, so it should not actually
+# take that much space on the filesystem.
+# Default: 6G
+#DISK_SIZE = "4G"
+#DISK_SIZE = "6G"
+#DISK_SIZE = "10G"
+
+# KVM_ARGS is a string of arbitrary KVM_ARGS to use when launching the VM
+# Default: "-usb -usbdevice tablet -net nic,model=virtio -net user -soundhw es1370"
+# See kvm(1) for a comprehensive list of arguments
+#KVM_ARGS = "-usb -usbdevice tablet -net nic,model=virtio -net user -soundhw es1370"

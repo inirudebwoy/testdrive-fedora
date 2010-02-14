@@ -1,0 +1,316 @@
+#!/usr/bin/python
+#
+#    testdrive - run today's Ubuntu development ISO, in a virtual machine
+#    Copyright (C) 2009 Canonical Ltd.
+#    Copyright (C) 2009 Dustin Kirkland
+#
+#    Authors: Dustin Kirkland <kirkland@canonical.com>
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, version 3 of the License.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import commands, hashlib, os, sys, tempfile, time
+
+PKG = "testdrive"
+PKGRC = "%src" % PKG
+
+# Try to pull globals from the environment
+HOME = os.getenv("HOME", "")
+ISO_URL = os.getenv("ISO_URL", "")
+DESKTOP = os.getenv("DESKTOP", "")
+VIRT = os.getenv("VIRT", "")
+CACHE = os.getenv("CACHE", "")
+MEM = os.getenv("MEM", "")
+DISK_FILE = os.getenv("DISK_FILE", "")
+DISK_SIZE = os.getenv("DISK_SIZE", "")
+KVM_ARGS = os.getenv("KVM_ARGS", "")
+VBOX_NAME = os.getenv("VBOX_NAME", "")
+
+def usage():
+	print("\n\
+Usage:\n\
+  %s [-f CONFIG_FILE] [-u URL_TO_ISO]\n\
+\n\
+  %s is a utility that allows you to easily download the latest Ubuntu\n\
+  development release and run it in a KVM virtual machine.\n\
+\n\
+  All options to this program are handled through the global configuration\n\
+  file, /etc/%s, and then the user's local configuration file,\n\
+  ~/.%s.\n\
+\n\
+  Users wanting to change the behavior default configuration can make a\n\
+  copy of /etc/%s, and pass this as a parameter to %s.\n\
+" % (PKG, PKG, PKGRC, PKGRC, PKGRC, PKG))
+	sys.exit(1)
+
+
+def error(str):
+	print("\nERROR: %s\n" % str)
+	if DESKTOP == 1:
+		raw_input("Press <enter> to exit...")
+	sys.exit(1)
+
+def info(str):
+	print("INFO: %s\n" % str)
+
+def warning(str):
+	print("WARNING: %s\n" % str)
+
+def is_iso(file):
+	if commands.getstatusoutput("file \"%s\" | grep -qs \"ISO 9660\"" % file)[0] == 0:
+		return("file://%s" % file)
+	else:
+		usage()
+
+def md5sum(file):
+	fh = open(file, 'rb')
+	x = fh.read()
+	fh.close()
+	m = hashlib.md5()
+	m.update(x)
+	return m.hexdigest()
+
+def run(cmd):
+	return(os.system(cmd))
+
+def run_or_die(cmd):
+	if run(cmd) != 0:
+		error("Command failed\n    `%s`" % cmd)
+
+########
+# Main #
+########
+
+# Load configuration files
+for i in ("/etc/%s" % PKGRC, "%s/.%s" % (HOME, PKGRC), "%s/.config/%s/%s" % (HOME, PKG, PKGRC)):
+	if os.path.exists(i):
+		try:
+			execfile(i)
+		except:
+			error("Invalid configuration [%s]" % i)
+
+# Handle parameters
+if len(sys.argv) == 2 and sys.argv[1] != "--desktop":
+	# Just one argument, assume it's an ISO
+	ISO_URL = is_iso(sys.argv[1])
+else:
+	i = 1
+	while i < len(sys.argv):
+		if sys.argv[i] == "-f":
+			i += 1
+			if os.path.exists(sys.argv[i]):
+				try:
+					execfile(i)
+				except:
+					error("Invalid configuration [%s]" % i)
+		elif sys.argv[i] == "-u":
+			i += 1
+			ISO_URL = sys.argv[i]
+		elif sys.argv[i] == "--desktop":
+			DESKTOP = 1
+		else:
+			usage
+		i += 1
+
+# If the ISO URL is undefined, make a selection, and then relaunch
+if len(ISO_URL) == 0:
+	os.execv("/usr/bin/testdrive-select-iso", ())
+
+# Choose the virtualization engine
+if len(VIRT) == 0:
+	# Check if KVM acceleration can be used
+	if commands.getstatusoutput("which kvm-ok && kvm-ok")[0] == 0:
+		VIRT = "kvm"
+		info("Using KVM for virtual machine hosting...");
+	elif commands.getstatusoutput("which VBoxManage")[0] == 0:
+		VIRT = "virtualbox"
+		warning("Your CPU's lack of VT will seriously impact performance.")
+		info("Using VirtualBox for virtual machine hosting...")
+	elif commands.getstatusoutput("which prlctl")[0] == 0:
+		VIRT = "parallels"
+		info("Using Parallels Desktop for virtual machine hosting...")
+	else:
+		error("You must have either /usr/bin/kvm or /usr/bin/VBoxManage installed.\n\
+HINT: Consider installing kvm if your CPU supports VT, or virtualbox-ose...\n\
+ egrep \"flags.*:.*(svm|vmx)\" /proc/cpuinfo && \\ \n\
+   sudo apt-get install kvm || \\ \n\
+   sudo apt-get install virtualbox-ose")
+
+# Set defaults where undefined
+
+if len(CACHE) == 0:
+	CACHE = "%s/.cache/%s" % (HOME, PKG)
+for i in ("iso", "img"):
+	if not os.path.exists("%s/%s" % (CACHE, i)):
+		os.makedirs("%s/%s" % (CACHE, i), 0700)
+
+ISO = os.path.basename(ISO_URL)
+PROTO = ISO_URL.partition(":")[0]
+PATH_TO_ISO = "%s/iso/%s" % (CACHE, ISO)
+
+if len(MEM) == 0:
+	total = commands.getoutput("grep ^MemTotal /proc/meminfo | awk '{print $2}'")
+	if total > 1000000:
+		MEM = 512
+	else:
+		MEM = 256
+
+if len(DISK_FILE) == 0:
+	DISK_FILE = tempfile.mkstemp(".img", "testdrive-disk-", "%s/img" % CACHE)[1]
+
+if len(DISK_SIZE) == 0:
+	DISK_SIZE = "6G"
+
+if len(KVM_ARGS) == 0:
+	KVM_ARGS = "-usb -usbdevice tablet -net nic,model=virtio -net user -soundhw es1370"
+
+if len(VBOX_NAME) == 0:
+	VBOX_NAME = PKG
+
+# BUG: should check disk space availability in CACHE dir
+# Update the cache
+info("Syncing the specified ISO...")
+print("      %s\n" % ISO_URL)
+
+if PROTO == "rsync":
+	run_or_die("rsync -azP %s %s" % (ISO_URL, PATH_TO_ISO))
+elif PROTO == "http" or PROTO == "ftp":
+	ZSYNC_WORKED = 0
+	if commands.getstatusoutput("which zsync")[0] == 0:
+		if run("cd %s/iso && zsync %s.zsync" % (CACHE, ISO_URL))[0] != 0:
+			# If the zsync failed, use wget
+			run_or_die("wget %s -O %s" % (ISO_URL, PATH_TO_ISO))
+	else:
+		# Fall back to wget
+		run_or_die("wget %s -O %s" % (ISO_URL, PATH_TO_ISO))
+elif PROTO == "file":
+	# If the iso is on file:///, use the ISO in place
+	PATH_TO_ISO = ISO_URL.partition("://")[2]
+	# Get aboslute path if a relative path is used
+	DIR = commands.getoutput("cd `dirname '%s'` && pwd" % PATH_TO_ISO)
+	FILE = os.path.basename("%s" % PATH_TO_ISO)
+	PATH_TO_ISO = "%s/%s" % (DIR, FILE)
+else:
+	error("Unsupported protocol [%s]" % PROTO)
+
+#is_iso(PATH_TO_ISO)
+
+# Launch the VM
+if VIRT == "kvm":
+	(status, output) = commands.getstatusoutput("kvm-ok")
+	if status != 0:
+		print(output)
+	info("Creating disk image [%s]..." % DISK_FILE)
+	run_or_die("kvm-img create -f qcow2 %s %s" % (DISK_FILE, DISK_SIZE))
+	info("Running the Virtual Machine...")
+	os.system("kvm -m %s -cdrom %s -drive file=%s,if=virtio,index=0,boot=on %s" % (MEM, PATH_TO_ISO, DISK_FILE, KVM_ARGS))
+elif VIRT == "virtualbox":
+       	# Determine which version of VirtualBox we have installed.  What is returned is
+	# typically a string such as '3.1.0r55467', lets assume that the command line
+	# is consistent within 3.0.x versions and 3.1.x version so extract this part of the
+	# version string for comparison later
+	vboxversion = commands.getoutput("VBoxManage --version")
+	vboxversion = "%s.%s" % (vboxversion.split(".")[0], vboxversion.split(".")[1])
+	if vboxversion == "3.0" or vboxversion == "3.1":
+		info("VirtualBox %s detected." % vboxversion)
+	else:
+		error("Unsupported version (%s) of VirtualBox; pleast install v3.0 or v3.1." % vboxversion)
+
+	DISK_SIZE = DISK_SIZE.replace("G", "000")
+	if os.path.exists(DISK_FILE):
+		os.unlink(DISK_FILE)
+	run("sed -i \":HardDisk.*%s:d\" %s/.VirtualBox/VirtualBox.xml" % (DISK_FILE, HOME))
+	info("Creating disk image...")
+	run_or_die("VBoxManage createhd --filename %s --size %s" % (DISK_FILE, DISK_SIZE))
+	if vboxversion == "3.0":
+		run("VBoxManage modifyvm %s --hda none" % VBOX_NAME)
+	elif vboxversion == "3.1":
+		run("VBoxManage storageattach %s --storagectl \"IDE Controller\" --port 0 --device 0 --type hdd --medium none" % VBOX_NAME)
+		run("VBoxManage storageattach %s --storagectl \"IDE Controller\" --port 0 --device 1 --type dvddrive --medium none" % VBOX_NAME)
+	info("Creating the Virtual Machine...")
+	if os.path.exists("%s/.VirtualBox/Machines/%s/%s.xml" % (HOME, VBOX_NAME, VBOX_NAME)) == 0:
+		os.unlink("%s/.VirtualBox/Machines/%s/%s.xml" % (HOME, VBOX_NAME, VBOX_NAME))
+	run("VBoxManage unregistervm %s --delete" % VBOX_NAME)
+	run_or_die("VBoxManage createvm --register --name %s" % VBOX_NAME)
+	run_or_die("VBoxManage modifyvm %s --memory %s" % (VBOX_NAME, MEM))
+	# This should probably support more than just Ubuntu...
+	if ISO_URL.find("amd64") >= 0:
+		platform = "Ubuntu_64"
+	else:
+		platform = "Ubuntu"
+	run_or_die("VBoxManage modifyvm %s --ostype %s" % (VBOX_NAME, platform))
+	run_or_die("VBoxManage modifyvm %s --vram 128" % VBOX_NAME)
+	run_or_die("VBoxManage modifyvm %s --boot1 disk" % VBOX_NAME)
+	run_or_die("VBoxManage modifyvm %s --boot2 dvd" % VBOX_NAME)
+	run_or_die("VBoxManage modifyvm %s --nic1 nat" % VBOX_NAME)
+	info("Running the Virtual Machine...")
+	if vboxversion == "3.0":
+		run_or_die("VBoxManage modifyvm %s --hda %s" % (VBOX_NAME, DISK_FILE))
+		run_or_die("VBoxManage startvm %s" % VBOX_NAME)
+		print(">>> %s <<<\n" % (PATH_TO_ISO))
+		run_or_die("VBoxManage controlvm %s dvdattach %s" % (VBOX_NAME, PATH_TO_ISO))
+	elif vboxversion == "3.1":
+		run_or_die("VBoxManage storagectl %s --name \"IDE Controller\" --add ide" % VBOX_NAME)
+		run_or_die("VBoxManage storageattach %s --storagectl \"IDE Controller\" --port 0 --device 0 --type hdd --medium %s" % (VBOX_NAME, DISK_FILE))
+		run_or_die("VBoxManage storageattach %s --storagectl \"IDE Controller\" --port 0 --device 1 --type dvddrive --medium %s" % (VBOX_NAME, PATH_TO_ISO))
+		run_or_die("VBoxManage startvm %s" % VBOX_NAME)
+
+	# Give this VM a few seconds to start up
+	time.sleep(5)
+	# Loop as long as this VM is running
+	while commands.getstatusoutput("VBoxManage list runningvms | grep -qs %s" % VBOX_NAME)[0] == 0:
+		time.sleep(2)
+elif VIRT == "parallels":
+	print("\n")
+	if commands.getstatusoutput("prlctl list %s | grep -qsv \"UUID\"" % VBOX_NAME)[0] == 0:
+		run_or_die("prlctl delete %s" % VBOX_NAME)
+	DISK_SIZE = DISK_SIZE.replace("G", "000")
+	info("Creating VM...")
+	run_or_die("prlctl create %s --ostype linux --distribution ubuntu" % VBOX_NAME)
+	run_or_die("prlctl set %s --memsize %s" % (VBOX_NAME, MEM))
+	run_or_die("prlctl set %s --device-del hdd0" % VBOX_NAME)
+	run_or_die("prlctl set %s --device-add hdd --type expand --size %s --iface scsi --position 0:0" % (VBOX_NAME, DISK_SIZE))
+	run_or_die("prlctl set %s --device-set cdrom0 --image %s" % (VBOX_NAME, PATH_TO_ISO))
+	run_or_die("prlctl start %s" % VBOX_NAME)
+	# Loop as long as this VM is running
+	while commands.getstatusoutput("prlctl list %s | grep -qs stopped" % VBOX_NAME)[0] != 0:
+		time.sleep(2)
+else:
+	error("Unsupported virtualization method [%s]" % VIRT)
+
+# If disk image is stock (e.g., you just ran a LiveCD, no installation),
+# purge it automatically.
+rm_disk = 0
+if os.path.exists(DISK_FILE):
+	if os.path.getsize(DISK_FILE) == 262144 and md5sum(DISK_FILE) == "1da7553f642332ec9fb58a6094d2c8ef":
+		# Clean up kvm qcow2 image
+		rm_disk = 1
+	if os.path.getsize(DISK_FILE) == 24576:
+		# Clean up vbox image
+		rm_disk = 1
+	elif os.path.getsize(DISK_FILE) == 0:
+		# Clean up empty file
+		rm_disk = 1
+	if rm_disk == 1:
+		info("Cleaning up empty disk image [%s]..." % DISK_FILE)
+		os.unlink(DISK_FILE)
+	else:
+		# Otherwise, remind about cache cleanup
+		info("You may wish to clean up the cache directory...")
+		print("      %s" % CACHE)
+		run("ls -HhalF %s/iso %s/img" % (CACHE, CACHE))
+		run("du -sh --apparent-size %s 2>/dev/null || du -sh %s" % (CACHE, CACHE))
+
+if DESKTOP == 1:
+	raw_input("\nPress <enter> to exit...")
+
+sys.exit(0)
