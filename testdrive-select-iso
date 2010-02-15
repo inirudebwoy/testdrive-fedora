@@ -27,20 +27,21 @@ if VT == "0":
 	ARCH = "i386"
 else:
 	ARCH = commands.getoutput("uname -m | grep -qs x86_64 && echo amd64 || echo i386")
-RELEASE = "lucid"
+#RELEASE = "lucid"
 
 ISO = []
-ISO.append({"name":"Ubuntu Desktop (%s)"%ARCH, "url":"rsync://cdimage.ubuntu.com/cdimage/daily-live/current/%s-desktop-%s.iso"%(RELEASE,ARCH)})
-ISO.append({"name":"Ubuntu Server (%s)"%ARCH, "url":"rsync://cdimage.ubuntu.com/cdimage/ubuntu-server/daily/current/%s-server-%s.iso"%(RELEASE,ARCH)})
-ISO.append({"name":"Ubuntu Alternate (%s)"%ARCH, "url":"rsync://cdimage.ubuntu.com/cdimage/daily/current/%s-alternate-%s.iso"%(RELEASE,ARCH)})
-ISO.append({"name":"Ubuntu DVD (%s)"%ARCH, "url":"rsync://cdimage.ubuntu.com/cdimage/dvd/current/%s-dvd-%s.iso"%(RELEASE,ARCH)})
+ISO.append({"name":"Fedora Desktop (%s)"%ARCH, "url":"http://alt.fedoraproject.org/pub/alt/nightly-composes/desktop/desktop-%s-20100211.17.iso"%(ARCH)})
+ISO.append({"name":"Fedora XFCE Spin (%s)"%ARCH, "url":"http://alt.fedoraproject.org/pub/alt/nightly-composes/xfce/xfce-%s-20100212.17.iso"%(ARCH)})
+ISO.append({"name":"Fedora LXDE Spin (%s)"%ARCH, "url":"http://alt.fedoraproject.org/pub/alt/nightly-composes/lxde/lxde-%s-20100212.17.iso"%(ARCH)})
+ISO.append({"name":"Fedora KDE Spin (%s)"%ARCH, "url":"http://alt.fedoraproject.org/pub/alt/nightly-composes/kde/kde-%s-20100212.17.iso"%(ARCH)})
 if ARCH == "amd64":
 	arch = "i386"
-	ISO.append({"name":"Ubuntu Desktop (%s)"%arch, "url":"rsync://cdimage.ubuntu.com/cdimage/daily-live/current/%s-desktop-%s.iso"%(RELEASE,arch)})
-	ISO.append({"name":"Ubuntu Server (%s)"%arch, "url":"rsync://cdimage.ubuntu.com/cdimage/ubuntu-server/daily/current/%s-server-%s.iso"%(RELEASE,arch)})
-	ISO.append({"name":"Ubuntu Alternate (%s)"%arch, "url":"rsync://cdimage.ubuntu.com/cdimage/daily/current/%s-alternate-%s.iso"%(RELEASE,arch)})
-	ISO.append({"name":"Ubuntu DVD (%s)"%arch, "url":"rsync://cdimage.ubuntu.com/cdimage/dvd/current/%s-dvd-%s.iso"%(RELEASE,arch)})
-ISO.append({"name":"Ubuntu Netbook", "url":"rsync://cdimage.ubuntu.com/cdimage/ubuntu-netbook/daily-live/current/%s-netbook-i386.iso"%(RELEASE)})
+	ISO.append({"name":"Fedora Desktop (%s)"%ARCH, "url":"http://alt.fedoraproject.org/pub/alt/nightly-composes/desktop/desktop-%s-20100211.17.iso"%(ARCH)})
+	ISO.append({"name":"Fedora XFCE Spin (%s)"%ARCH, "url":"http://alt.fedoraproject.org/pub/alt/nightly-composes/xfce/xfce-%s-20100212.17.iso"%(ARCH)})
+	ISO.append({"name":"Fedora LXDE Spin (%s)"%ARCH, "url":"http://alt.fedoraproject.org/pub/alt/nightly-composes/lxde/lxde-%s-20100212.17.iso"%(ARCH)})
+	ISO.append({"name":"Fedora KDE Spin (%s)"%ARCH, "url":"http://alt.fedoraproject.org/pub/alt/nightly-composes/kde/kde-%s-20100212.17.iso"%(ARCH)})
+
+#ISO.append({"name":"Ubuntu Netbook", "url":"rsync://cdimage.ubuntu.com/cdimage/ubuntu-netbook/daily-live/current/%s-netbook-i386.iso"%(RELEASE)})
 
 # These are problematic, because the names are all the same ... lucid-desktop-i386.iso
 # Need to rename the destination ISO accordingly
@@ -51,7 +52,7 @@ ISO.append({"name":"Ubuntu Netbook", "url":"rsync://cdimage.ubuntu.com/cdimage/u
 
 while 1:
 	i = 1
-	print("\nWelcome to Testdrive!\n")
+	print("\nWitamy w Testdrive!\n")
 	for iso in ISO:
 		print("  %d. %s (%s)" % (i, iso["name"], RELEASE))
 		filename = os.path.basename(iso["url"])
@@ -62,22 +63,22 @@ while 1:
 	print("  %d. Other (prompt for ISO URL)" % i)
 
 	try:
-		input = raw_input("\nSelect an ISO to testdrive: ")
+		input = raw_input("\nWybierz obraz ISO do przetestowania: ")
 		choice = int(input)
 	except KeyboardInterrupt:
 		print("\n")
 		exit(0)
 	except:
-		print("\nERROR: Invalid input\n")
+		print("\nERROR: Błędne dane.\n")
 		continue
 
 	if choice == i:
-		url = raw_input("\nEnter an ISO URL to testdrive: ")
+		url = raw_input("\nWpisz adres URL do pliku ISO: ")
 		break
 	elif choice in range(1, i):
 		url = ISO[choice-1]["url"]
 		break
 	else:
-		print("\nERROR: Invalid selection\n")
+		print("\nERROR: Błędna sekcja.\n")
 
 os.system("testdrive -u %s" % url)
