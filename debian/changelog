@@ -1,0 +1,229 @@
+testdrive (1.22) unreleased; urgency=low
+
+  * UNRELEASED
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Thu, 18 Feb 2010 22:31:34 -0600
+
+testdrive (1.21-0ubuntu1) lucid; urgency=low
+
+  * testdrive: fix conditional test, LP: #524217
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Thu, 18 Feb 2010 22:31:29 -0600
+
+testdrive (1.20-0ubuntu1) lucid; urgency=low
+
+  * testdrive: fix broken handling of --desktop
+  * testdrive-select-iso: welcome
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Sat, 13 Feb 2010 17:38:08 -0600
+
+testdrive (1.19-0ubuntu1) lucid; urgency=low
+
+  * testdrive:
+    - total rewrite in python to make testdrive more translatable
+    - some commands are allowed to fail -> run(),
+      others are not -> run_or_die()
+    - improve file cleanup of vbox empty images
+    - fix the vbox running grep
+    - LP: #520680, #518762 - fix erroneous iso check
+    - LP: #497499 - fix memory override
+    - must use full path for python execv()
+  * testdriverc: port to python syntax
+  * testdrive-select-iso: offer both i386 and amd64 ISO's to amd64 kvm users,
+    LP: #518069
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Thu, 11 Feb 2010 19:29:47 -0600
+
+testdrive (1.18-0ubuntu1) lucid; urgency=low
+
+  * testdrive:
+    - automatically clean up empty disk images from cache
+    - allow for omission of the -u parameter
+    - info message about cleaned disk image
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Sat, 06 Feb 2010 22:38:53 -0600
+
+testdrive (1.17-0ubuntu1) lucid; urgency=low
+
+  * testdrive-select-iso, testdriverc: netbook remix no longer "remix",
+    LP: #505909
+  * testdrive: fix MEM setting logic, LP: #497499
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Sat, 16 Jan 2010 11:00:36 +1300
+
+testdrive (1.16-0ubuntu1) lucid; urgency=low
+
+  * testdrive, testdrive-select-iso: separate the img and iso in the
+    cache directory
+  * doc/testdrive.1, testdrive: respect xdg, LP: #501766
+  * debian/control: depend on virtualbox >= 3.0.8 (Karmic), which currently
+    seems to be the oldest successfully tested version of virtualbox to
+    work with testdrive, LP: #499413
+  * testdrive-select-iso: if the user doesn't have VT, then defaul to
+    i386 images, LP: #497984
+  * testdrive, testdrive.desktop: make sure error messages get shown to
+    the user, if running from the desktop menu, LP: #497955
+
+  [ Paul Rudkin and Dustin Kirkland ]
+  * testdrive: support virtualbox 3.1, LP: #495178
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Tue, 12 Jan 2010 14:55:26 -0600
+
+testdrive (1.15-0ubuntu1) lucid; urgency=low
+
+  * testdrive:
+    - improve the copy-and-paste instructions for installing kvm or
+      virtualbox, LP: #494632
+    - show the kvm-ok output, if VIRT=kvm and !kvm-ok, LP: #495746
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Sun, 13 Dec 2009 22:51:18 -0600
+
+testdrive (1.14-0ubuntu1) lucid; urgency=low
+
+  [ Dustin Kirkland ]
+  * testdrive-select-iso:
+    - loop around input
+    - improve input exception handling
+    - allow for ctrl-c canceling
+    - launch testdrive upon url selection
+    - fix array indexing
+  * testdrive:
+    - source /etc/testdriverc rather than .conf, LP: #485930
+    - silence kvm-ok messages, which are misleading when using
+      VirtualBox, LP: #486884
+    - use .img for backing disk tempfile
+    - launch testdrive-select-iso, if ISO_URL undefined
+    - dereference symlinks on ls of cache dir
+  * debian/install: install testdrive-select-iso
+  * debian/control: depend on python for testdrive-select-iso
+  * doc/testdrive-select-iso.1: initial manpage, clean it up
+
+  [ Kevin Fullerton ]
+  * testdrive: Add support for MacOS/Parallels for testdriving Linux ISOs,
+    LP: #488084
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Thu, 26 Nov 2009 13:48:43 -0600
+
+testdrive (1.13-0ubuntu1) lucid; urgency=low
+
+  * testdrive-select-iso: added some code to present a list
+    and code for selecting an ISO from a list; add GPL header
+  * COPYING: added GPLv3 copyright file to top level tarball
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Wed, 25 Nov 2009 11:22:22 -0600
+
+testdrive (1.12-0ubuntu1) lucid; urgency=low
+
+  * testdrive: create temp file names, such that you can run multiple
+    instances of testdrive
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Tue, 17 Nov 2009 15:29:44 -0600
+
+testdrive (1.11-0ubuntu1) lucid; urgency=low
+
+  * testdrive: allow for -u paths to local files
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Tue, 17 Nov 2009 14:23:42 -0600
+
+testdrive (1.10-0ubuntu1) lucid; urgency=low
+
+  * testdrive: fix zsync/wget failover
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Tue, 17 Nov 2009 14:14:59 -0600
+
+testdrive (1.9-0ubuntu1) lucid; urgency=low
+
+  * testdrivegtk, debian/control, debian/rules,
+    debian/testdrive-gtk.install: moved to lp:testdrive-gtk project
+  * testdrive, testdriverc: update for testdriving lucid by default
+  * bin/*: move testdrive and testdriverc down to the base dir,
+    drop the testdrivegtk wrapper script for now, remove the bin dir
+  * testdrive: use rsync compression
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Tue, 17 Nov 2009 10:09:05 -0600
+
+testdrive (1.8-0ubuntu1) lucid; urgency=low
+
+  * bin/testdrive, bin/testdriverc: allow for the user to specify the
+    hypervisor type
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Thu, 12 Nov 2009 21:08:33 -0600
+
+testdrive (1.7-0ubuntu1) lucid; urgency=low
+
+  * bin/testdrive, bin/testdriverc: simplify the configuration drastically,
+    all we really need is the ISO_URL paramater
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Thu, 12 Nov 2009 17:24:37 -0600
+
+testdrive (1.6-0ubuntu1) lucid; urgency=low
+
+  * debian/testdrive-gtk.install: install testdrive-gtk's files
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Tue, 10 Nov 2009 15:28:49 -0600
+
+testdrive (1.5-0ubuntu1) lucid; urgency=low
+
+  * bin/testdrive, debian/control, debian/install, testdrive.desktop:
+    separate the GTK frontend to a separate binary package, allowing
+    for testdrive to operate purely from the command line, if necessary
+  * bin/testdrive, debian/control: add fallback support for VirtualBox;
+    prefer KVM, but if KVM cannot be used with VT, use VirtualBox instead
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Mon, 09 Nov 2009 15:11:54 -0600
+
+testdrive (1.4-0ubuntu1) lucid; urgency=low
+
+  [ Dustin Kirkland ]
+  * bin/testdrive, bin/testdriverc, debian/install: move the bin scripts
+    to a bin directory, in order to prepare for Rick Spencer's gui merge
+  * debian/rules: install the binaries properly for gtk to work
+  * doc/testdrive.1: move to the doc directory
+  * testdrive.desktop: update the desktop file to point to the gtk launcher
+  * bin/testdrivegtk: add shell wrapper suitable for /usr/bin installation
+  * debian/control: depend on python and python-gtk2
+
+  [ Rick Spencer ]
+  * Massive merge, adding a gtk frontend to testdrive (testdrivegtk),
+    https://code.launchpad.net/~rick-rickspencer3/testdrive/gtk-client/+merge/14595
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Sat, 07 Nov 2009 14:25:45 -0600
+
+testdrive (1.3-0ubuntu1) lucid; urgency=low
+
+  * testdrive:
+    - if zsync fails, fall back to wget
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Fri, 06 Nov 2009 14:11:27 -0600
+
+testdrive (1.2-0ubuntu1) lucid; urgency=low
+
+  * testdrive:
+    - use kvm-ok to test for VT
+    - support file:///
+    - fix zsync support
+    - echo error messages to stderr
+    - add -f and -u parameters
+    - add a helpful message about cleaning up cache
+    - use -O rather than -o for wget
+    - drop fully qualified path to kvm and kvm-img
+  * testdrive.1: updated for -f and -u parameters
+  * debian/release*: added some release scripts to help with ppa publication
+    for backport releases
+  * debian/control: depend on a particular version of kvm-84 that fixes some
+    known virtio issues
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Fri, 06 Nov 2009 07:27:05 -0600
+
+testdrive (1.1~ppa1) karmic; urgency=low
+
+  * testdrive, debian/control: use zsync for http|ftp protocol access,
+    fail back to curl or wget
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Thu, 05 Nov 2009 19:15:57 -0600
+
+testdrive (1.0~ppa1) karmic; urgency=low
+
+  * Initial release
+
+ -- Dustin Kirkland <kirkland@ubuntu.com>  Thu, 05 Nov 2009 17:40:20 -0600

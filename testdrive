@@ -1,5 +1,4 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
 #
 #    testdrive - run today's Ubuntu development ISO, in a virtual machine
 #    Copyright (C) 2009 Canonical Ltd.
@@ -39,10 +38,10 @@ VBOX_NAME = os.getenv("VBOX_NAME", "")
 def usage():
 	print("\n\
 Usage:\n\
-  %s [-f PLIK_KONFIGURACYJNY] [-u ADRES_DO_ISO]\n\
+  %s [-f CONFIG_FILE] [-u URL_TO_ISO]\n\
 \n\
-  %s to narzędzie które pozwala na pobranie \n\
-  ostatniego deweloperskiego obrazu Fedory (Rawhide) na maszynie wirtualnej.\n\
+  %s is a utility that allows you to easily download the latest Ubuntu\n\
+  development release and run it in a KVM virtual machine.\n\
 \n\
   All options to this program are handled through the global configuration\n\
   file, /etc/%s, and then the user's local configuration file,\n\
@@ -55,16 +54,16 @@ Usage:\n\
 
 
 def error(str):
-	print("\nBŁĄD: %s\n" % str)
+	print("\nERROR: %s\n" % str)
 	if DESKTOP == 1:
-		raw_input("Naciśnij <enter> aby wyjść...")
+		raw_input("Press <enter> to exit...")
 	sys.exit(1)
 
 def info(str):
 	print("INFO: %s\n" % str)
 
 def warning(str):
-	print("OSTRZEŻENIE: %s\n" % str)
+	print("WARNING: %s\n" % str)
 
 def is_iso(file):
 	if commands.getstatusoutput("file \"%s\" | grep -qs \"ISO 9660\"" % file)[0] == 0:
@@ -97,7 +96,7 @@ for i in ("/etc/%s" % PKGRC, "%s/.%s" % (HOME, PKGRC), "%s/.config/%s/%s" % (HOM
 		try:
 			execfile(i)
 		except:
-			error("Błędna konfiguracja [%s]" % i)
+			error("Invalid configuration [%s]" % i)
 
 # Handle parameters
 if len(sys.argv) == 2 and sys.argv[1] != "--desktop":
@@ -112,7 +111,7 @@ else:
 				try:
 					execfile(i)
 				except:
-					error("Błędna konfiguracja [%s]" % i)
+					error("Invalid configuration [%s]" % i)
 		elif sys.argv[i] == "-u":
 			i += 1
 			ISO_URL = sys.argv[i]
@@ -131,20 +130,20 @@ if len(VIRT) == 0:
 	# Check if KVM acceleration can be used
 	if commands.getstatusoutput("which kvm-ok && kvm-ok")[0] == 0:
 		VIRT = "kvm"
-		info("Używanie KVM jako maszyny writualnej...");
+		info("Using KVM for virtual machine hosting...");
 	elif commands.getstatusoutput("which VBoxManage")[0] == 0:
 		VIRT = "virtualbox"
 		warning("Your CPU's lack of VT will seriously impact performance.")
-		info("Używanie VirtualBox jako maszyny wirtualnej...")
+		info("Using VirtualBox for virtual machine hosting...")
 	elif commands.getstatusoutput("which prlctl")[0] == 0:
 		VIRT = "parallels"
-		info("Używanie Parallels Desktop jako maszyny wirtualnej...")
+		info("Using Parallels Desktop for virtual machine hosting...")
 	else:
-		error("Musisz mieć zainstalowane /usr/bin/kvm lub /usr/bin/VBoxManage.\n\
-ZANOTUJ: Consider installing kvm if your CPU supports VT, or virtualbox-ose...\n\
+		error("You must have either /usr/bin/kvm or /usr/bin/VBoxManage installed.\n\
+HINT: Consider installing kvm if your CPU supports VT, or virtualbox-ose...\n\
  egrep \"flags.*:.*(svm|vmx)\" /proc/cpuinfo && \\ \n\
-   yum install kvm || \\ \n\
-   yum install VirtualBox-OSE")
+   sudo apt-get install kvm || \\ \n\
+   sudo apt-get install virtualbox-ose")
 
 # Set defaults where undefined
 
@@ -201,7 +200,7 @@ elif PROTO == "file":
 	FILE = os.path.basename("%s" % PATH_TO_ISO)
 	PATH_TO_ISO = "%s/%s" % (DIR, FILE)
 else:
-	error("Nieobsługiwany protokół [%s]" % PROTO)
+	error("Unsupported protocol [%s]" % PROTO)
 
 #is_iso(PATH_TO_ISO)
 
@@ -210,9 +209,9 @@ if VIRT == "kvm":
 	(status, output) = commands.getstatusoutput("kvm-ok")
 	if status != 0:
 		print(output)
-	info("Tworzenie obrazu dysku [%s]..." % DISK_FILE)
+	info("Creating disk image [%s]..." % DISK_FILE)
 	run_or_die("kvm-img create -f qcow2 %s %s" % (DISK_FILE, DISK_SIZE))
-	info("Uruchamianie maszyny wirutlanej...")
+	info("Running the Virtual Machine...")
 	os.system("kvm -m %s -cdrom %s -drive file=%s,if=virtio,index=0,boot=on %s" % (MEM, PATH_TO_ISO, DISK_FILE, KVM_ARGS))
 elif VIRT == "virtualbox":
        	# Determine which version of VirtualBox we have installed.  What is returned is
@@ -222,9 +221,9 @@ elif VIRT == "virtualbox":
 	vboxversion = commands.getoutput("VBoxManage --version")
 	vboxversion = "%s.%s" % (vboxversion.split(".")[0], vboxversion.split(".")[1])
 	if vboxversion == "3.0" or vboxversion == "3.1":
-		info("VirtualBox %s wykryty." % vboxversion)
+		info("VirtualBox %s detected." % vboxversion)
 	else:
-		error("Nieobsługiwana wersja (%s) VirtualBox'a; zainstaluj v3.0 lub v3.1." % vboxversion)
+		error("Unsupported version (%s) of VirtualBox; pleast install v3.0 or v3.1." % vboxversion)
 
 	DISK_SIZE = DISK_SIZE.replace("G", "000")
 	if os.path.exists(DISK_FILE):
@@ -238,7 +237,7 @@ elif VIRT == "virtualbox":
 		run("VBoxManage storageattach %s --storagectl \"IDE Controller\" --port 0 --device 0 --type hdd --medium none" % VBOX_NAME)
 		run("VBoxManage storageattach %s --storagectl \"IDE Controller\" --port 0 --device 1 --type dvddrive --medium none" % VBOX_NAME)
 	info("Creating the Virtual Machine...")
-	if os.path.exists("%s/.VirtualBox/Machines/%s/%s.xml" % (HOME, VBOX_NAME, VBOX_NAME)) == 0:
+	if os.path.exists("%s/.VirtualBox/Machines/%s/%s.xml" % (HOME, VBOX_NAME, VBOX_NAME)):
 		os.unlink("%s/.VirtualBox/Machines/%s/%s.xml" % (HOME, VBOX_NAME, VBOX_NAME))
 	run("VBoxManage unregistervm %s --delete" % VBOX_NAME)
 	run_or_die("VBoxManage createvm --register --name %s" % VBOX_NAME)
@@ -286,7 +285,7 @@ elif VIRT == "parallels":
 	while commands.getstatusoutput("prlctl list %s | grep -qs stopped" % VBOX_NAME)[0] != 0:
 		time.sleep(2)
 else:
-	error("Nieobsługiwana metoda wirtualizacji [%s]" % VIRT)
+	error("Unsupported virtualization method [%s]" % VIRT)
 
 # If disk image is stock (e.g., you just ran a LiveCD, no installation),
 # purge it automatically.

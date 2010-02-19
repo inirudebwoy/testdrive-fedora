@@ -1,6 +1,6 @@
 [Desktop Entry]
-_Name=Test Drive an Fedora ISO
-_Comment=Download and run an Fedora ISO in a Virtual Machine
+_Name=Test Drive an Ubuntu ISO
+_Comment=Download and run an Ubuntu ISO in a Virtual Machine
 Categories=Utility;System;
 Exec=testdrive --desktop
 Icon=/usr/share/testdrive/testdrive.png
