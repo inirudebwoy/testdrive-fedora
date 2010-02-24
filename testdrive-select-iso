@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 #
 #    testdrive-select-iso - present a list and select an ISO for testdriving
 #    Copyright (C) 2009 Canonical Ltd.
@@ -19,7 +20,38 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+## import commands, time, os
+
+## PKG = "testdrive"
+## VT = commands.getoutput("kvm-ok >/dev/null 2>&1 && echo 1 || echo 0")
+## if VT == "0":
+## 	ARCH = "i386"
+## else:
+## 	ARCH = commands.getoutput("uname -m | grep -qs x86_64 && echo amd64 || echo i386")
+## RELEASE = "lucid"
+
+## ISO = []
+## ISO.append({"name":"Ubuntu Desktop (%s)"%ARCH, "url":"rsync://cdimage.ubuntu.com/cdimage/daily-live/current/%s-desktop-%s.iso"%(RELEASE,ARCH)})
+## ISO.append({"name":"Ubuntu Server (%s)"%ARCH, "url":"rsync://cdimage.ubuntu.com/cdimage/ubuntu-server/daily/current/%s-server-%s.iso"%(RELEASE,ARCH)})
+## ISO.append({"name":"Ubuntu Alternate (%s)"%ARCH, "url":"rsync://cdimage.ubuntu.com/cdimage/daily/current/%s-alternate-%s.iso"%(RELEASE,ARCH)})
+## ISO.append({"name":"Ubuntu DVD (%s)"%ARCH, "url":"rsync://cdimage.ubuntu.com/cdimage/dvd/current/%s-dvd-%s.iso"%(RELEASE,ARCH)})
+## if ARCH == "amd64":
+## 	arch = "i386"
+## 	ISO.append({"name":"Ubuntu Desktop (%s)"%arch, "url":"rsync://cdimage.ubuntu.com/cdimage/daily-live/current/%s-desktop-%s.iso"%(RELEASE,arch)})
+## 	ISO.append({"name":"Ubuntu Server (%s)"%arch, "url":"rsync://cdimage.ubuntu.com/cdimage/ubuntu-server/daily/current/%s-server-%s.iso"%(RELEASE,arch)})
+## 	ISO.append({"name":"Ubuntu Alternate (%s)"%arch, "url":"rsync://cdimage.ubuntu.com/cdimage/daily/current/%s-alternate-%s.iso"%(RELEASE,arch)})
+## 	ISO.append({"name":"Ubuntu DVD (%s)"%arch, "url":"rsync://cdimage.ubuntu.com/cdimage/dvd/current/%s-dvd-%s.iso"%(RELEASE,arch)})
+## ISO.append({"name":"Ubuntu Netbook", "url":"rsync://cdimage.ubuntu.com/cdimage/ubuntu-netbook/daily-live/current/%s-netbook-i386.iso"%(RELEASE)})
+
+
 import commands, time, os
+import HTMLParser
+import urllib
+
+ISO_LIST = {'kde':'',
+            'desktop':'',
+            'xfce':'',
+            'lxde':''} #gnome to desktop
 
 PKG = "testdrive"
 VT = commands.getoutput("kvm-ok >/dev/null 2>&1 && echo 1 || echo 0")
@@ -27,20 +59,38 @@ if VT == "0":
 	ARCH = "i386"
 else:
 	ARCH = commands.getoutput("uname -m | grep -qs x86_64 && echo amd64 || echo i386")
-RELEASE = "lucid"
+RELEASE = "rawhide"
 
 ISO = []
-ISO.append({"name":"Ubuntu Desktop (%s)"%ARCH, "url":"rsync://cdimage.ubuntu.com/cdimage/daily-live/current/%s-desktop-%s.iso"%(RELEASE,ARCH)})
-ISO.append({"name":"Ubuntu Server (%s)"%ARCH, "url":"rsync://cdimage.ubuntu.com/cdimage/ubuntu-server/daily/current/%s-server-%s.iso"%(RELEASE,ARCH)})
-ISO.append({"name":"Ubuntu Alternate (%s)"%ARCH, "url":"rsync://cdimage.ubuntu.com/cdimage/daily/current/%s-alternate-%s.iso"%(RELEASE,ARCH)})
-ISO.append({"name":"Ubuntu DVD (%s)"%ARCH, "url":"rsync://cdimage.ubuntu.com/cdimage/dvd/current/%s-dvd-%s.iso"%(RELEASE,ARCH)})
-if ARCH == "amd64":
-	arch = "i386"
-	ISO.append({"name":"Ubuntu Desktop (%s)"%arch, "url":"rsync://cdimage.ubuntu.com/cdimage/daily-live/current/%s-desktop-%s.iso"%(RELEASE,arch)})
-	ISO.append({"name":"Ubuntu Server (%s)"%arch, "url":"rsync://cdimage.ubuntu.com/cdimage/ubuntu-server/daily/current/%s-server-%s.iso"%(RELEASE,arch)})
-	ISO.append({"name":"Ubuntu Alternate (%s)"%arch, "url":"rsync://cdimage.ubuntu.com/cdimage/daily/current/%s-alternate-%s.iso"%(RELEASE,arch)})
-	ISO.append({"name":"Ubuntu DVD (%s)"%arch, "url":"rsync://cdimage.ubuntu.com/cdimage/dvd/current/%s-dvd-%s.iso"%(RELEASE,arch)})
-ISO.append({"name":"Ubuntu Netbook", "url":"rsync://cdimage.ubuntu.com/cdimage/ubuntu-netbook/daily-live/current/%s-netbook-i386.iso"%(RELEASE)})
+
+class pobierzLinki(HTMLParser.HTMLParser):
+    def handle_starttag(self, tag, attrs):
+        if tag =="a":
+            for name, value in attrs:
+                if name == 'href':
+                    if 'iso' in value:
+                        ISO_LIST[value.split('-')[0]] \
+			       = value.split('-')[-1]
+                        
+for x in ISO_LIST:
+    lParser = pobierzLinki()
+    try:
+        lParser.feed(
+            urllib.urlopen("http://alt.fedoraproject.org/" \
+                           "pub/alt/nightly-composes/%s/"
+                           % x).read())
+    except IOError:
+        print "BŁĄD!" \
+	      "\nSprawdź połączenie z internetem." \
+              "\nNie można pobrać listy ISO."
+        break
+    lParser.close()
+
+for e in ISO_LIST:
+	ISO.append({"name":"Fedora %s (%s)" % (e, ARCH),
+		    "url":"http://alt.fedoraproject.org/" \
+		    "pub/alt/nightly-composes/%s/" \
+		    "%s-%s-%s" % (e, e, ARCH, ISO_LIST[e])})
 
 # These are problematic, because the names are all the same ... lucid-desktop-i386.iso
 # Need to rename the destination ISO accordingly
